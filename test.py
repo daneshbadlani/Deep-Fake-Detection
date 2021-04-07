@@ -53,7 +53,7 @@ print('Number of total examples:', num_samples)
 print('Number of examples per label:',
       len(tf.io.gfile.listdir(str(data_dir/commands[0]))))
 print('Example file tensor:', filenames[0])
-      
+
 train_files = filenames[:6400]
 val_files = filenames[6400: 6400 + 800]
 test_files = filenames[-800:]
@@ -65,7 +65,7 @@ print('Test set size', len(test_files))
 def get_label(file_path):
   parts = tf.strings.split(file_path, os.path.sep)
 
-  # Note: You'll use indexing here instead of tuple unpacking to enable this 
+  # Note: You'll use indexing here instead of tuple unpacking to enable this
   # to work in a TensorFlow graph.
   return parts[-2]
 def decode_audio(audio_binary):
@@ -86,7 +86,7 @@ def get_spectrogram(waveform):
   # Padding for files with less than 16000 samples
   zero_padding = tf.zeros([16000] - tf.shape(waveform), dtype=tf.float32)
 
-  # Concatenate audio with padding so that all audio clips will be of the 
+  # Concatenate audio with padding so that all audio clips will be of the
   # same length
   waveform = tf.cast(waveform, tf.float32)
   equal_length = tf.concat([waveform, zero_padding], 0)
@@ -126,3 +126,23 @@ axes[0].set_xlim([0, 16000])
 plot_spectrogram(spectrogram.numpy(), axes[1])
 axes[1].set_title('Spectrogram')
 plt.show()
+
+
+"""Easier way to preprocess the audio requires the download of the files
+https://medium.com/@nitinsingh1789/spoken-digit-classification-b22d67fd24b0
+this will take all the files I think in any format and makes them into stft"""
+
+file = os.listdir('free-spoken-digit-dataset/recordings')
+data=[]
+for i in file:
+    x , sr = librosa.load('free-spoken-digit-dataset/recordings/'+i)
+    data.append(x)
+
+X=[]
+for i in range(len(data)):
+    X.append(abs(librosa.stft(data[i]).mean(axis = 1).T))
+X= np.array(X)
+y= []
+for i in range(len(data)):
+    y.append(1)
+y = mp.array(y)
