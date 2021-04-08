@@ -18,6 +18,10 @@ from tensorflow.keras.layers import (
     Reshape,
 )
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.text import Tokenizer
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 import librosa
 import pathlib
 import os
@@ -28,11 +32,14 @@ from sklearn.model_selection import train_test_split
 
 # from keras.datasets import spoken_digit
 from scipy.io import wavfile
+import time
 
 # from keras_adversarial import AdversarialModel, simple_gan, gan_targets
 # from keras_adversarial import AdversarialOptimizerSimultaneous, normal_latent_sampling
 
-# Data Load and Preprocess
+"""Easier way to preprocess the audio requires the download of the files
+https://medium.com/@nitinsingh1789/spoken-digit-classification-b22d67fd24b0
+this will take all the files I think in any format and makes them into stft"""
 
 files = os.listdir("./free-spoken-digit-dataset/recordings")
 data = []
@@ -49,53 +56,124 @@ for i in range(len(data)):
     y.append(1)
 y = np.array(y)
 
-# Splitting the data into 75% train and 25% test
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 
-# Outputting data shapes and samples
 print("Data Shape:", X_train.shape)
 print("Sample Record:", X_train[0])
 print("Targets Shape:", y_train.shape)
 print("Sample Target:", y_train[0])
 
-# RNN Generator
-generator_model = Sequential(
-    [
-        LSTM(200, input_shape=1025, dropout=0.2, recurrent_dropout=0.2),
-        LSTM(200, dropout=0.2, recurrent_dropout=0.2),
-        Dense(1025),
-    ]
-)
-
-# FFNN Discriminator
-discriminator_model = Sequential(
-    [
-        Input(shape=(1025,)),
-        Dense(300, activation="relu"),
-        Dense(300, activation="relu"),
-        Dense(100, activation="sigmoid"),
-    ]
-)
 """
-GAN_Network = simple_gan(
-    generator_model, discriminator_model, normal_latent_sampling((100,))
-)
-
-GAN_Model = AdversarialModel(
-    base_model=GAN_Network,
-    player_params=[
-        generator_model.trainable_weights,
-        discriminator_model.trainable_weights,
-    ],
-)
-
-GAN_Model.adversarial_compile(
-    adversarial_optimizer=AdversarialOptimizerSimultaneous(),
-    player_optimizer=["adam", "adam"],
-    loss="binary_crossentropy",
-)
-
-generator_model.summary()
-discriminator_model.summary()
-GAN_Model.summary()
+The MNIST GAN tutorial below has been modified to work with audio.
+https://www.tensorflow.org/tutorials/generative/dcgan
 """
+
+
+def make_generator_model():
+    return Sequential(
+        [
+            Input(shape=(1025, 1)),
+            LSTM(200, dropout=0.2, recurrent_dropout=0.2),
+            LSTM(200, dropout=0.2, recurrent_dropout=0.2),
+            Dense(1025),
+        ]
+    )
+
+
+def make_discriminator_model():
+    return Sequential(
+        [
+            Input(shape=(1025,)),
+            Dense(300, activation="relu"),
+            Dense(300, activation="relu"),
+            Dense(100, activation="sigmoid"),
+        ]
+    )
+
+
+# Loss function for both
+# This method returns a helper function to compute cross entropy loss
+cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
+# Compares dicriminator's predictions on real audio to array of 1s and
+# fake audio to an array of 0s
+
+
+def discriminator_loss(real_output, fake_output):
+    real_loss = cross_entropy(tf.ones_like(real_output), real_output)
+    fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
+    total_loss = real_loss + fake_loss
+    return total_loss
+
+
+def generator_loss(fake_output):
+    return cross_entropy(tf.ones_like(fake_output), fake_output)
+
+
+# Optimizers for the two models
+generator_optimizer = tf.keras.optimizers.Adam(1e-4)
+discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
+
+EPOCHS = 50
+noise_dim = 100
+BATCH_SIZE = 250
+
+# Batch and shuffle the training data
+train_dataset = (
+    tf.data.Dataset.from_tensor_slices(X_train)
+    .shuffle(X_train.shape[0])
+    .batch(BATCH_SIZE)
+)
+
+# Create the models
+generator = make_generator_model()
+discriminator = make_discriminator_model()
+
+generator.summary()
+# Notice the use of `tf.function`
+# This annotation causes the function to be "compiled".
+
+
+@tf.function
+def train_step(audios):
+    noise = tf.random.normal([BATCH_SIZE, noise_dim])
+
+    with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+        generated_audio = generator(noise, training=True)
+
+        real_output = discriminator(audios, training=True)
+        fake_output = discriminator(generated_audio, training=True)
+
+        gen_loss = generator_loss(fake_output)
+        disc_loss = discriminator_loss(real_output, fake_output)
+
+    gradients_of_generator = gen_tape.gradient(
+        gen_loss, generator.trainable_variables)
+    gradients_of_discriminator = disc_tape.gradient(
+        disc_loss, discriminator.trainable_variables
+    )
+
+    generator_optimizer.apply_gradients(
+        zip(gradients_of_generator, generator.trainable_variables)
+    )
+    discriminator_optimizer.apply_gradients(
+        zip(gradients_of_discriminator, discriminator.trainable_variables)
+    )
+
+
+def train(dataset, epochs):
+    for epoch in range(epochs):
+        start = time.time()
+
+        for audio_batch in dataset:
+            train_step(audio_batch)
+
+        print("Time for epoch {} is {} sec".format(
+            epoch + 1, time.time() - start))
+
+    # Generate after the final epoch
+    display.clear_output(wait=True)
+
+
+train(train_dataset, EPOCHS)
