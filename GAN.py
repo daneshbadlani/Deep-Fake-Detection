@@ -16,6 +16,12 @@ from tensorflow.keras.layers import (
     Activation,
     Input,
     Reshape,
+    BatchNormalization,
+    ReLU,
+    Conv1D,
+    Flatten,
+    AveragePooling1D,
+    LeakyReLU,
 )
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.preprocessing.sequence import pad_sequences
@@ -66,19 +72,35 @@ print("Sample Target:", y_train[0])
 
 """
 The MNIST GAN tutorial below has been modified to work with audio.
-https://www.tensorflow.org/tutorials/generative/dcgan
-"""
+https://www.tensorflow.org/tutorials/generative/dcgan"""
 
 
 def make_generator_model():
-    return Sequential(
-        [
-            Input(shape=(1025, 1)),
-            LSTM(200, dropout=0.2, recurrent_dropout=0.2),
-            LSTM(200, dropout=0.2, recurrent_dropout=0.2),
-            Dense(1025),
-        ]
-    )
+    model = Sequential()
+    model.add(Dense(205, input_shape=(1025,)))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(BatchNormalization(momentum=0.9))
+    model.add(Reshape((205, 1)))
+
+    model.add(Conv1D(16, 20, padding="same"))
+    model.add(ReLU())
+    model.add(BatchNormalization(momentum=0.9))
+    model.add(Dropout(rate=0.1))
+
+    model.add(Conv1D(32, 25, padding="same"))
+    model.add(ReLU())
+    model.add(BatchNormalization(momentum=0.9))
+    model.add(Dropout(rate=0.1))
+
+    model.add(Conv1D(64, 50, padding="same"))
+    model.add(ReLU())
+    model.add(BatchNormalization(momentum=0.9))
+    model.add(Dropout(rate=0.1))
+
+    model.add(Conv1D(5, 100, padding="same"))
+    model.add(Dropout(rate=0.3))
+    model.add(Flatten())
+    return model
 
 
 def make_discriminator_model():
@@ -116,7 +138,7 @@ generator_optimizer = tf.keras.optimizers.Adam(1e-4)
 discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 
 EPOCHS = 50
-noise_dim = 100
+noise_dim = 1025
 BATCH_SIZE = 250
 
 # Batch and shuffle the training data
@@ -128,9 +150,10 @@ train_dataset = (
 
 # Create the models
 generator = make_generator_model()
-discriminator = make_discriminator_model()
-
 generator.summary()
+discriminator = make_discriminator_model()
+discriminator.summary()
+
 # Notice the use of `tf.function`
 # This annotation causes the function to be "compiled".
 
