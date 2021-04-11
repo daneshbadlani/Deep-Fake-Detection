@@ -40,6 +40,9 @@ from sklearn.model_selection import train_test_split
 from scipy.io import wavfile
 import time
 
+# for wav output
+import soundfile as sf
+
 # from keras_adversarial import AdversarialModel, simple_gan, gan_targets
 # from keras_adversarial import AdversarialOptimizerSimultaneous, normal_latent_sampling
 
@@ -140,6 +143,8 @@ discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 EPOCHS = 50
 noise_dim = 1025
 BATCH_SIZE = 250
+num_examples_to_generate = 16
+seed = tf.random.normal([num_examples_to_generate, noise_dim])
 
 # Batch and shuffle the training data
 train_dataset = (
@@ -197,6 +202,14 @@ def train(dataset, epochs):
 
     # Generate after the final epoch
     display.clear_output(wait=True)
+    generateAndSaveAudio(generator, epochs, seed)
+
+
+def generateAndSaveAudio(model, epoch, testInput):
+    predictions = model(testInput, training=False)
+    print("PREDICTION SHAPE:", predictions.shape)
+    sample = predictions[0]
+    sf.write('./output/sample.wav', samplerate=sr, data=sample)
 
 
 train(train_dataset, EPOCHS)
