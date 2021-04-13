@@ -46,7 +46,7 @@ def _unzip(save_path, _, database_name, data_path):
 
 
 DATASET_CELEBA_NAME = 'celeba'
-data_path = './'
+data_path = './celeba'
 url = 'https://s3-us-west-1.amazonaws.com/udacity-dlnfd/datasets/celeba.zip'
 hash_code = '00d2c5bc6d35e252742224ab0c1e8fcb'
 extract_path = os.path.join(data_path, 'img_align_celeba')

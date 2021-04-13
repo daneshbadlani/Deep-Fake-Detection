@@ -35,7 +35,7 @@ from IPython import display
 import time
 
 """IMAGE PREPROCESSING"""
-PIC_DIR = './img_align_celeba/'
+PIC_DIR = './celeba/img_align_celeba/'
 IMAGES_COUNT = 10000
 ORIG_WIDTH = 178
 ORIG_HEIGHT = 208
