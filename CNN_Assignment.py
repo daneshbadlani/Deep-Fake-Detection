@@ -114,3 +114,17 @@ model.compile(optimizer = 'adam', loss ='binary_crossentropy', metrics = ['accur
 history = model.fit(X_train, y_train, epochs = 25,  callbacks = stop, validation_split = 0.1)
 
 results = model.evaluate(X_test, y_test)
+
+# plot accuracy vs epochs
+plt.plot(history.history['accuracy'])
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.show()
+
+# plot loss vs epochs
+plt.plot(history.history['loss'])
+plt.title('Model Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.show()
