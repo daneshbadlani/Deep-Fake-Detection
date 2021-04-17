@@ -152,7 +152,7 @@ model.add(BatchNormalization())
 # Add dropout layer of 0.2
 model.add(Dropout(rate=0.2))
 
-# Add a dense softmax layer
+# Add a dense sigmoid layer
 model.add(Dense(1, activation='sigmoid'))
 
 # Set up early stop training with a patience of 3
@@ -162,8 +162,8 @@ stop = EarlyStopping(patience=3)
 model.compile(optimizer='adam', loss='binary_crossentropy',
               metrics=['accuracy'])
 
-# Fit the model with the generated data, 25 epochs, steps per epoch and validation data defined.
-history = model.fit(X_train, y_train, epochs=2,
+# Fit the model with the generated data, 5 epochs, steps per epoch and validation data defined.
+history = model.fit(X_train, y_train, epochs=5,
                     callbacks=[stop], validation_data=(X_test, y_test))
 
 # plot accuracy vs epochs
