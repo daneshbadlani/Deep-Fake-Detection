@@ -1,6 +1,6 @@
-# CSCI-315: Final Project
+# Deep Fake Detection
 
-This repository consists of all the work for the final project of AI course.
+This repository consists of all the work for the Deep Fake Detection project.
 
 # Getting Started
 
